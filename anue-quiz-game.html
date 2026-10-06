@@ -1,0 +1,931 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+<title>AÜG & GVP Quiz – Gruppenspiel</title>
+<link href="https://fonts.googleapis.com/css2?family=Syne:wght@400;600;700;800&family=IBM+Plex+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+:root {
+  --bg: #0c0e13;
+  --surface: #12151d;
+  --card: #171b26;
+  --border: #1f2535;
+  --accent: #e8c840;
+  --accent2: #4af0b0;
+  --danger: #f0504a;
+  --warn: #f09040;
+  --text: #e8eaf0;
+  --muted: #5a6378;
+  --joker: #a078f0;
+  --font-head: 'Syne', sans-serif;
+  --font-mono: 'IBM Plex Mono', monospace;
+  box-sizing: border-box;
+  padding-top: env(safe-area-inset-top, 0px);
+  padding-bottom: env(safe-area-inset-bottom, 0px);
+}
+*, *::before, *::after { box-sizing: inherit; margin: 0; padding: 0; }
+
+html, body {
+  height: 100%;
+  background: var(--bg);
+  color: var(--text);
+  font-family: var(--font-mono);
+  overflow-x: hidden;
+}
+
+/* ── SCREENS ──────────────────────────────────────────────────── */
+.screen { display: none; min-height: 100vh; flex-direction: column; align-items: center; justify-content: flex-start; padding: 2rem 1rem 4rem; }
+.screen.active { display: flex; }
+
+/* ── GLOW BG ──────────────────────────────────────────────────── */
+.glow-tl { position: fixed; top: -30%; left: -20%; width: 60vw; height: 60vw; background: radial-gradient(ellipse, rgba(232,200,64,.05) 0%, transparent 70%); pointer-events: none; z-index: 0; }
+.glow-br { position: fixed; bottom: -30%; right: -20%; width: 60vw; height: 60vw; background: radial-gradient(ellipse, rgba(74,240,176,.04) 0%, transparent 70%); pointer-events: none; z-index: 0; }
+
+/* ── COMMON ───────────────────────────────────────────────────── */
+.wrap { width: 100%; max-width: 740px; position: relative; z-index: 1; }
+
+.eyebrow {
+  font-size: .6rem; letter-spacing: .2em; color: var(--accent);
+  border: 1px solid rgba(232,200,64,.25); display: inline-block;
+  padding: .2rem .7rem; margin-bottom: 1.2rem;
+}
+
+h1 {
+  font-family: var(--font-head); font-weight: 800;
+  font-size: clamp(2rem, 6vw, 3.2rem);
+  line-height: 1.05; letter-spacing: -.02em; margin-bottom: .4rem;
+}
+h1 em { font-style: normal; color: var(--accent); }
+
+.sub { color: var(--muted); font-size: .78rem; letter-spacing: .06em; margin-bottom: 2.5rem; }
+
+/* cards */
+.panel {
+  background: var(--card); border: 1px solid var(--border);
+  padding: 2rem; position: relative; margin-bottom: 1.5rem;
+}
+.panel::before { content: ''; position: absolute; top: 0; left: 0; right: 0; height: 2px; background: linear-gradient(90deg, var(--accent) 0%, var(--accent2) 100%); }
+
+/* buttons */
+.btn {
+  font-family: var(--font-head); font-weight: 700; font-size: .95rem;
+  letter-spacing: .04em; border: none; cursor: pointer;
+  padding: .9rem 2.2rem; transition: all .15s ease; display: inline-block;
+}
+.btn-primary { background: var(--accent); color: #0c0e13; }
+.btn-primary:hover { background: #f5d84a; transform: translateY(-2px); }
+.btn-ghost { background: transparent; color: var(--accent); border: 1px solid var(--accent); }
+.btn-ghost:hover { background: var(--accent); color: #0c0e13; }
+.btn-danger { background: var(--danger); color: #fff; }
+.btn-danger:hover { background: #f57070; transform: translateY(-2px); }
+.btn:disabled { opacity: .3; cursor: not-allowed; transform: none !important; }
+
+/* ══════════════════════════════════════════════════════════════ */
+/*  SCREEN 1 – SETUP                                              */
+/* ══════════════════════════════════════════════════════════════ */
+#setup { padding-top: 2.5rem; }
+
+.names-grid {
+  display: grid; grid-template-columns: repeat(auto-fill, minmax(180px, 1fr));
+  gap: .6rem; margin-bottom: 1.5rem;
+}
+.name-slot {
+  display: flex; align-items: center; gap: .5rem;
+  background: var(--surface); border: 1px solid var(--border); padding: .5rem .75rem;
+}
+.slot-num { color: var(--muted); font-size: .65rem; width: 1.2rem; flex-shrink: 0; }
+.name-input {
+  background: transparent; border: none; outline: none;
+  color: var(--text); font-family: var(--font-mono); font-size: .82rem;
+  width: 100%; caret-color: var(--accent);
+}
+.name-input::placeholder { color: var(--muted); }
+.name-input:focus { border-bottom: 1px solid var(--accent); }
+
+.setup-actions { display: flex; gap: 1rem; flex-wrap: wrap; }
+
+.add-slot-btn {
+  background: transparent; border: 1px dashed var(--border);
+  color: var(--muted); font-family: var(--font-mono); font-size: .78rem;
+  padding: .5rem .75rem; cursor: pointer; transition: all .15s;
+  display: flex; align-items: center; gap: .5rem;
+}
+.add-slot-btn:hover { border-color: var(--accent); color: var(--accent); }
+
+/* ══════════════════════════════════════════════════════════════ */
+/*  SCREEN 2 – LOBBY                                              */
+/* ══════════════════════════════════════════════════════════════ */
+#lobby { justify-content: center; min-height: 100vh; }
+
+.lobby-center { text-align: center; }
+.lobby-center h1 { font-size: clamp(2.2rem, 7vw, 4rem); margin-bottom: .6rem; }
+.lobby-meta { color: var(--muted); font-size: .78rem; margin-bottom: 3rem; }
+.remaining-chips { display: flex; flex-wrap: wrap; gap: .5rem; justify-content: center; margin-bottom: 2.5rem; }
+.chip {
+  font-size: .72rem; padding: .25rem .7rem;
+  border: 1px solid var(--border); color: var(--muted);
+  background: var(--surface);
+}
+.chip.done { opacity: .3; text-decoration: line-through; }
+
+.spin-btn {
+  font-family: var(--font-head); font-weight: 800; font-size: 1.3rem;
+  letter-spacing: .06em; background: var(--accent); color: #0c0e13;
+  border: none; cursor: pointer; padding: 1.2rem 3.5rem;
+  transition: all .2s; position: relative; overflow: hidden;
+}
+.spin-btn::after { content: ''; position: absolute; inset: 0; background: rgba(255,255,255,0); transition: background .15s; }
+.spin-btn:hover { background: #f5d84a; transform: translateY(-3px); box-shadow: 0 8px 30px rgba(232,200,64,.25); }
+.spin-btn:active { transform: translateY(0); }
+.spin-btn:disabled { opacity: .3; cursor: not-allowed; transform: none; box-shadow: none; }
+
+.round-counter { font-size: .7rem; color: var(--muted); margin-top: 1.5rem; letter-spacing: .1em; }
+
+/* ══════════════════════════════════════════════════════════════ */
+/*  SCREEN 3 – QUESTION                                           */
+/* ══════════════════════════════════════════════════════════════ */
+#question { padding-top: 1.5rem; }
+
+/* callout bar */
+.callout {
+  width: 100%; max-width: 740px; position: relative; z-index: 1;
+  background: var(--card); border: 1px solid var(--accent);
+  padding: 1rem 1.5rem; margin-bottom: 1.5rem;
+  display: flex; align-items: center; gap: 1rem;
+}
+.callout-avatar {
+  width: 2.8rem; height: 2.8rem; background: var(--accent);
+  color: #0c0e13; font-family: var(--font-head); font-weight: 800; font-size: 1.1rem;
+  display: flex; align-items: center; justify-content: center; flex-shrink: 0;
+}
+.callout-name { font-family: var(--font-head); font-weight: 800; font-size: 1.1rem; color: var(--accent); }
+.callout-sub { font-size: .72rem; color: var(--muted); }
+
+/* timer ring */
+.timer-wrap {
+  width: 100%; max-width: 740px; position: relative; z-index: 1;
+  display: flex; align-items: center; gap: 1.5rem; margin-bottom: 1.5rem;
+}
+.ring-container { position: relative; width: 72px; height: 72px; flex-shrink: 0; }
+svg.ring { transform: rotate(-90deg); }
+.ring-bg { fill: none; stroke: var(--border); stroke-width: 5; }
+.ring-fg { fill: none; stroke: var(--accent2); stroke-width: 5; stroke-linecap: round; transition: stroke-dashoffset .9s linear, stroke .3s; }
+.ring-num {
+  position: absolute; inset: 0; display: flex; align-items: center; justify-content: center;
+  font-family: var(--font-head); font-weight: 800; font-size: 1.4rem; color: var(--text);
+}
+.timer-status { flex: 1; }
+.timer-label { font-size: .65rem; letter-spacing: .15em; color: var(--muted); margin-bottom: .2rem; }
+.timer-bar-wrap { height: 4px; background: var(--border); border-radius: 2px; overflow: hidden; }
+.timer-bar-fill { height: 100%; background: var(--accent2); transition: width .9s linear, background .3s; border-radius: 2px; }
+
+/* diff badge */
+.diff-badge {
+  font-size: .6rem; letter-spacing: .14em; padding: .2rem .6rem; border-radius: 2px;
+  display: inline-block; margin-bottom: 1rem;
+}
+.diff-mittel { background: rgba(232,200,64,.12); color: var(--accent); border: 1px solid rgba(232,200,64,.3); }
+.diff-schwer { background: rgba(240,140,64,.12); color: var(--warn); border: 1px solid rgba(240,140,64,.3); }
+.diff-sehr-schwer { background: rgba(240,80,74,.12); color: var(--danger); border: 1px solid rgba(240,80,74,.3); }
+
+.q-text {
+  font-family: var(--font-head); font-weight: 700;
+  font-size: clamp(1rem, 2.5vw, 1.2rem); line-height: 1.55;
+  margin-bottom: 1.8rem; color: var(--text);
+}
+
+/* options */
+.options { display: flex; flex-direction: column; gap: .65rem; }
+.opt-btn {
+  background: var(--surface); border: 1px solid var(--border);
+  padding: .9rem 1.2rem; cursor: pointer;
+  font-family: var(--font-mono); font-size: .82rem; color: var(--text);
+  text-align: left; transition: all .15s; display: flex; align-items: flex-start; gap: .9rem; line-height: 1.5;
+}
+.opt-btn:hover:not(:disabled) { border-color: var(--accent); background: rgba(232,200,64,.05); transform: translateX(3px); }
+.opt-letter {
+  flex-shrink: 0; width: 1.35rem; height: 1.35rem; border: 1px solid var(--border);
+  display: flex; align-items: center; justify-content: center;
+  font-size: .68rem; color: var(--muted); transition: all .15s;
+}
+.opt-btn:hover:not(:disabled) .opt-letter { border-color: var(--accent); color: var(--accent); }
+.opt-btn.correct { border-color: var(--accent2); background: rgba(74,240,176,.08); }
+.opt-btn.correct .opt-letter { border-color: var(--accent2); color: var(--accent2); background: rgba(74,240,176,.15); }
+.opt-btn.wrong { border-color: var(--danger); background: rgba(240,80,74,.08); }
+.opt-btn.wrong .opt-letter { border-color: var(--danger); color: var(--danger); background: rgba(240,80,74,.15); }
+.opt-btn.hidden-opt { opacity: .2; pointer-events: none; }
+.opt-btn:disabled { cursor: default; pointer-events: none; }
+
+/* explanation */
+.explanation {
+  margin-top: 1.4rem; padding: 1.1rem 1.25rem;
+  background: rgba(74,240,176,.05); border-left: 2px solid var(--accent2);
+  font-size: .78rem; line-height: 1.75; color: #9aaabb; display: none;
+}
+.explanation.show { display: block; animation: fadeUp .3s ease; }
+.explanation strong { color: var(--accent2); }
+
+/* joker strip */
+.joker-strip {
+  width: 100%; max-width: 740px; position: relative; z-index: 1;
+  margin-bottom: 1rem; display: none;
+}
+.joker-strip.show { display: block; animation: fadeUp .35s ease; }
+.joker-card {
+  background: rgba(160,120,240,.1); border: 1px solid rgba(160,120,240,.4);
+  padding: 1rem 1.4rem; display: flex; align-items: center; gap: 1.2rem; flex-wrap: wrap;
+}
+.joker-icon { font-size: 1.6rem; flex-shrink: 0; }
+.joker-info { flex: 1; }
+.joker-title { font-family: var(--font-head); font-weight: 700; color: var(--joker); font-size: .95rem; margin-bottom: .15rem; }
+.joker-desc { font-size: .74rem; color: var(--muted); }
+.joker-btns { display: flex; gap: .6rem; }
+.joker-use {
+  background: var(--joker); color: #fff; border: none; cursor: pointer;
+  font-family: var(--font-head); font-weight: 700; font-size: .82rem;
+  padding: .55rem 1.2rem; transition: all .15s;
+}
+.joker-use:hover { background: #b898f8; transform: translateY(-2px); }
+.joker-skip {
+  background: transparent; color: var(--muted); border: 1px solid var(--border);
+  cursor: pointer; font-family: var(--font-mono); font-size: .78rem;
+  padding: .55rem 1rem; transition: all .15s;
+}
+.joker-skip:hover { border-color: var(--muted); color: var(--text); }
+
+/* next / lobby btn */
+.q-footer { margin-top: 1.4rem; display: none; }
+.q-footer.show { display: flex; gap: 1rem; flex-wrap: wrap; }
+
+/* red blink overlay */
+@keyframes redPulse {
+  0%, 100% { box-shadow: inset 0 0 0 3px transparent; }
+  50% { box-shadow: inset 0 0 0 3px rgba(240,80,74,.55); }
+}
+body.danger-blink { animation: redPulse .7s infinite; }
+
+/* ══ SCREEN 4 – DONE ══════════════════════════════════════════ */
+#done { justify-content: center; text-align: center; }
+.done-big { font-family: var(--font-head); font-weight: 800; font-size: clamp(2.5rem,8vw,5rem); color: var(--accent); margin: 1rem 0; }
+.done-sub { color: var(--muted); font-size: .8rem; margin-bottom: 2.5rem; }
+
+/* ══ ANIMATIONS ═══════════════════════════════════════════════ */
+@keyframes fadeUp { from { opacity: 0; transform: translateY(14px); } to { opacity: 1; transform: translateY(0); } }
+@keyframes popIn  { from { opacity: 0; transform: scale(.92); }       to { opacity: 1; transform: scale(1); } }
+.fadein { animation: fadeUp .4s ease both; }
+.popin  { animation: popIn .35s cubic-bezier(.2,1.4,.4,1) both; }
+
+/* ══ RESPONSIVE ═══════════════════════════════════════════════ */
+@media (max-width: 500px) {
+  .panel { padding: 1.4rem; }
+  .names-grid { grid-template-columns: 1fr 1fr; }
+  .callout { padding: .75rem 1rem; }
+  .joker-btns { width: 100%; }
+}
+</style>
+</head>
+<body>
+
+<div class="glow-tl"></div>
+<div class="glow-br"></div>
+
+<!-- ══════════════════════════════════════════════════════════ -->
+<!--  SCREEN 1 – SETUP                                          -->
+<!-- ══════════════════════════════════════════════════════════ -->
+<section class="screen active" id="setup">
+  <div class="wrap fadein">
+    <div class="eyebrow">Gruppenspiel · AÜG & GVP-Tarifvertrag</div>
+    <h1>Wer spielt <em>heute</em>?</h1>
+    <p class="sub">Namen eintragen – jede Person bekommt genau eine Frage</p>
+
+    <div class="panel">
+      <div class="names-grid" id="names-grid"></div>
+      <button class="add-slot-btn" id="add-slot-btn" onclick="addSlot()">
+        <span>+</span> Weitere Person
+      </button>
+    </div>
+
+    <div class="setup-actions">
+      <button class="btn btn-primary" onclick="startGame()">Spiel starten →</button>
+      <button class="btn btn-ghost" onclick="clearNames()">Zurücksetzen</button>
+    </div>
+  </div>
+</section>
+
+<!-- ══════════════════════════════════════════════════════════ -->
+<!--  SCREEN 2 – LOBBY                                          -->
+<!-- ══════════════════════════════════════════════════════════ -->
+<section class="screen" id="lobby">
+  <div class="wrap lobby-center">
+    <div class="eyebrow" id="lobby-round-eye">Runde 1 / 15</div>
+    <h1 id="lobby-title">Bereit?</h1>
+    <p class="lobby-meta">Wer ist als Nächstes dran?</p>
+
+    <div class="remaining-chips" id="remaining-chips"></div>
+
+    <button class="spin-btn" id="spin-btn" onclick="spinPlayer()">
+      ⚡ Nächste Person ziehen
+    </button>
+    <div class="round-counter" id="round-counter"></div>
+  </div>
+</section>
+
+<!-- ══════════════════════════════════════════════════════════ -->
+<!--  SCREEN 3 – QUESTION                                       -->
+<!-- ══════════════════════════════════════════════════════════ -->
+<section class="screen" id="question">
+
+  <!-- Callout -->
+  <div class="callout fadein" id="callout">
+    <div class="callout-avatar" id="callout-avatar">?</div>
+    <div>
+      <div class="callout-name" id="callout-name">–</div>
+      <div class="callout-sub">Du bist dran! Die Zeit läuft…</div>
+    </div>
+  </div>
+
+  <!-- Timer -->
+  <div class="timer-wrap fadein" id="timer-wrap">
+    <div class="ring-container">
+      <svg class="ring" width="72" height="72" viewBox="0 0 72 72">
+        <circle class="ring-bg" cx="36" cy="36" r="30"/>
+        <circle class="ring-fg" id="ring-fg" cx="36" cy="36" r="30"/>
+      </svg>
+      <div class="ring-num" id="ring-num">45</div>
+    </div>
+    <div class="timer-status">
+      <div class="timer-label">VERBLEIBENDE ZEIT</div>
+      <div class="timer-bar-wrap">
+        <div class="timer-bar-fill" id="timer-bar"></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Joker Strip (hidden until 15s) -->
+  <div class="joker-strip" id="joker-strip">
+    <div class="joker-card">
+      <div class="joker-icon" id="joker-icon">🎲</div>
+      <div class="joker-info">
+        <div class="joker-title" id="joker-title">Joker verfügbar!</div>
+        <div class="joker-desc" id="joker-desc">–</div>
+      </div>
+      <div class="joker-btns">
+        <button class="joker-use" id="joker-use-btn" onclick="useJoker()">Einlösen</button>
+        <button class="joker-skip" onclick="skipJoker()">Nein danke</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Question card -->
+  <div class="wrap fadein" id="q-wrap">
+    <div class="panel">
+      <div class="diff-badge" id="q-diff-badge">–</div>
+      <div class="q-text" id="q-text">–</div>
+      <div class="options" id="q-options"></div>
+      <div class="explanation" id="q-explanation"></div>
+    </div>
+  </div>
+
+  <!-- Footer buttons -->
+  <div class="q-footer wrap" id="q-footer">
+    <button class="btn btn-primary" onclick="goLobby()">Zurück zur Lobby →</button>
+  </div>
+
+</section>
+
+<!-- ══════════════════════════════════════════════════════════ -->
+<!--  SCREEN 4 – DONE                                           -->
+<!-- ══════════════════════════════════════════════════════════ -->
+<section class="screen" id="done">
+  <div class="wrap fadein" style="text-align:center">
+    <div class="eyebrow">Ende</div>
+    <div class="done-big">🎉</div>
+    <h1>Alle waren dran!</h1>
+    <p class="done-sub">Starke Runde – das Tarifrecht sitzt!</p>
+    <button class="btn btn-primary" style="margin-top:1rem" onclick="resetAll()">Neue Runde</button>
+  </div>
+</section>
+
+<script>
+// ══════════════════════════════════════════════════════════════
+//  QUESTION POOL  (20 Fragen)
+// ══════════════════════════════════════════════════════════════
+const POOL = [
+  // ── MITTEL ─────────────────────────────────────────────────
+  {
+    diff:"mittel", diffLabel:"⬤ Mittel", diffClass:"diff-mittel",
+    q:"Wann traten die neuen GVP/DGB-Tarifverträge in Kraft und was lösten sie ab?",
+    opts:["Zum 01.01.2026 – sie ersetzen die bisherigen iGZ- und BAP-Tarifwerke, die bis 31.12.2025 weitergalten.","Zum 01.04.2024 – als Folge der Fusion von iGZ und BAP zum GVP.","Zum 01.03.2025 – parallel zur letzten Entgelterhöhung im iGZ-Tarifwerk.","Zum 01.07.2026 – nach Ablauf der Übergangsfrist von 18 Monaten."],
+    correct:0,
+    explanation:"<strong>Richtig!</strong> Nach dem Zusammenschluss von iGZ und BAP zum <strong>GVP (01.12.2023)</strong> wurden neue Tarifverträge verhandelt. Zum <strong>01.01.2026</strong> ersetzen die DGB/GVP-Tarifverträge die bisherigen Mantel-, Entgeltrahmen- und Entgelttarifverträge beider Vorgängerverbände."
+  },
+  {
+    diff:"mittel", diffLabel:"⬤ Mittel", diffClass:"diff-mittel",
+    q:"In welche Entgeltgruppe ist ein Leiharbeitnehmer einzugruppieren, dessen Tätigkeit eine mindestens dreijährige Berufsausbildung voraussetzt?",
+    opts:["Entgeltgruppe 4","Entgeltgruppe 3","Entgeltgruppe 5","Entgeltgruppe 2b"],
+    correct:0,
+    explanation:"<strong>Richtig!</strong> Laut § 3 ERTV gilt: EG 3 = mindestens zweijährige, <strong>EG 4 = mindestens dreijährige</strong> Berufsausbildung."
+  },
+  {
+    diff:"mittel", diffLabel:"⬤ Mittel", diffClass:"diff-mittel",
+    q:"Wie hoch ist das tarifliche Stundenentgelt (Eingangsstufe) für Entgeltgruppe 4 laut Entgelttarifvertrag iGZ/GVP ab dem 01.03.2025?",
+    opts:["17,14 €","16,51 €","15,62 €","19,21 €"],
+    correct:0,
+    explanation:"<strong>Korrekt!</strong> Die Entgelttabelle ab <strong>01.03.2025</strong> weist für EG 4 eine Eingangsstufe von <strong>17,14 €/Std.</strong> aus. Ab 01.10.2024 waren es 16,51 €."
+  },
+  {
+    diff:"mittel", diffLabel:"⬤ Mittel", diffClass:"diff-mittel",
+    q:"Was ist der Gesamtverband der Personaldienstleister (GVP) und wie ist er entstanden?",
+    opts:["Zusammenschluss von iGZ und BAP zum 01.12.2023 per Umwandlungsgesetz.","Ein neu gegründeter Verband ohne Rechtsnachfolge von iGZ oder BAP.","Eine Unterabteilung der Bundesagentur für Arbeit für Zeitarbeitsunternehmen.","Eine europäische Dachorganisation der nationalen Zeitarbeitsverbände."],
+    correct:0,
+    explanation:"<strong>Richtig!</strong> Der <strong>GVP</strong> entstand durch die Verschmelzung von iGZ und BAP gemäß Umwandlungsgesetz zum <strong>01.12.2023</strong>. Er ist deren Rechtsnachfolger und führt die Tarifverträge fort."
+  },
+  {
+    diff:"mittel", diffLabel:"⬤ Mittel", diffClass:"diff-mittel",
+    q:"Was änderte sich ab dem 01.08.2025 bei der Formvorschrift für Arbeitsverträge in der Zeitarbeit?",
+    opts:["Statt Schriftform (§ 126 BGB) genügt nun Textform (§ 126b BGB) – also z.B. E-Mail oder PDF.","Arbeitsverträge müssen ab sofort notariell beglaubigt werden.","Mündliche Verträge sind wieder möglich, sofern sie innerhalb von 7 Tagen bestätigt werden.","Nur befristete Verträge benötigen noch die Schriftform."],
+    correct:0,
+    explanation:"<strong>Richtig!</strong> Seit <strong>01.08.2025</strong> reicht für neue Arbeitsverträge in der Zeitarbeit die <strong>Textform</strong> – z.B. E-Mail oder PDF. Eigenhändige Unterschriften sind nicht mehr zwingend, was vollständig digitale Vertragsabschlüsse ermöglicht."
+  },
+  {
+    diff:"mittel", diffLabel:"⬤ Mittel", diffClass:"diff-mittel",
+    q:"Welches Stundenentgelt (Eingangsstufe) gilt für Entgeltgruppe 1 ab dem 01.10.2024?",
+    opts:["14,00 €","13,50 €","14,53 €","13,80 €"],
+    correct:0,
+    explanation:"<strong>Korrekt!</strong> Ab <strong>01.10.2024</strong> beträgt die Eingangsstufe der EG 1 genau <strong>14,00 €/Stunde</strong>. Ab 01.03.2025 erhöht sie sich weiter auf 14,53 €."
+  },
+  // ── SCHWER ─────────────────────────────────────────────────
+  {
+    diff:"schwer", diffLabel:"⬤ Schwer", diffClass:"diff-schwer",
+    q:"Unter welchen Voraussetzungen gilt der ERTV iGZ/GVP laut § 1 ausdrücklich NICHT?",
+    opts:["Wenn das Zeitarbeitsunternehmen mit dem Kundenbetrieb einen Konzern (§ 18 AktG) bildet, zuvor dort Beschäftigte in nennenswertem Umfang übernimmt und auf vergleichbarem Arbeitsplatz einsetzt, um Entgelttarifverträge zu umgehen.","Wenn der Leiharbeitnehmer kein DGB-Gewerkschaftsmitglied ist.","Wenn der Verleiher seinen Sitz im EU-Ausland hat.","Wenn der Einsatz kürzer als vier Wochen dauert."],
+    correct:0,
+    explanation:"<strong>Richtig!</strong> § 1 Abs. 2 ERTV enthält eine <strong>Konzernausnahmeklausel</strong>: kein Tarifschutz, wenn (a) Übernahme in nennenswertem Umfang, (b) Einsatz auf ursprünglichem Arbeitsplatz und (c) Umgehung bestehender Entgelttarifverträge im Kundenbetrieb."
+  },
+  {
+    diff:"schwer", diffLabel:"⬤ Schwer", diffClass:"diff-schwer",
+    q:"Was gilt laut § 2.3 ERTV, wenn ein Leiharbeitnehmer auf Veranlassung des Arbeitgebers vorübergehend eine geringwertigere Tätigkeit ausübt und ihm in der Schutzfrist keine gleichwertige Stelle angeboten wird?",
+    opts:["Er behält während der gesamten 6-Wochen-Schutzfrist die Stammentgeltgruppe; ohne Angebot einer gleichwertigen Stelle bleibt sie dauerhaft erhalten.","Er verliert sofort den Anspruch auf Stammentgelt und wird nach ausgeübter Tätigkeit vergütet.","Der Arbeitgeber muss nach 4 Wochen kündigen oder den Einsatz wiederherstellen.","Die Stammentgeltgruppe bleibt dauerhaft erhalten, unabhängig von der Dauer."],
+    correct:0,
+    explanation:"<strong>Korrekt!</strong> § 2.3 ERTV: Schutzfrist <strong>6 Wochen</strong>. Wird eine gleichwertige Tätigkeit angeboten und abgelehnt → Anpassung danach möglich. Wird <strong>keine</strong> gleichwertige Tätigkeit angeboten → <strong>Stammentgelt bleibt dauerhaft</strong>."
+  },
+  {
+    diff:"schwer", diffLabel:"⬤ Schwer", diffClass:"diff-schwer",
+    q:"Welche zwei Voraussetzungen müssen nach § 5 ERTV iGZ/GVP kumulativ erfüllt sein, damit die einsatzbezogene Zulage erstmals gezahlt wird?",
+    opts:["Mindestens 9 Monate ununterbrochene Überlassung an denselben Kundenbetrieb UND mindestens 14 Monate ununterbrochenes Bestehen des Arbeitsverhältnisses.","Mindestens 6 Monate Überlassung an denselben Kundenbetrieb und Mitgliedschaft in einer DGB-Gewerkschaft.","Mindestens 12 Monate Betriebszugehörigkeit beim Verleiher, unabhängig vom Einsatzort.","Equal-Pay-Anspruch nach 9 Monaten und Tarifbindung des Entleihers."],
+    correct:0,
+    explanation:"<strong>Richtig!</strong> § 5 ERTV: Doppelvoraussetzung – <strong>9 Monate ununterbrochene Überlassung</strong> an denselben Kundenbetrieb <em>und</em> <strong>14 Monate ununterbrochenes Arbeitsverhältnis</strong>. Zulagenhöhe: 0,20 €/Std. (EG 1–4) bzw. 0,35 €/Std. (EG 5–9)."
+  },
+  {
+    diff:"schwer", diffLabel:"⬤ Schwer", diffClass:"diff-schwer",
+    q:"Welche Rechtsfolge hat es nach § 10 AÜG, wenn keine Festhaltenserklärung beim Verleiher abgegeben wird und die Verleiherlaubnis fehlt?",
+    opts:["Es entsteht kraft Gesetzes ein Arbeitsverhältnis zwischen Leiharbeitnehmer und Entleiher.","Der Verleiher zahlt eine Vertragsstrafe an die Bundesagentur für Arbeit.","Das Arbeitsverhältnis mit dem Verleiher wird automatisch unbefristet verlängert.","Der Überlassungsvertrag bleibt wirksam; der Entleiher wird lediglich bußgeldpflichtig."],
+    correct:0,
+    explanation:"<strong>Richtig!</strong> Ohne Verleiherlaubnis ist der Überlassungsvertrag nach § 9 Nr. 1 AÜG unwirksam. Nach § 10 Abs. 1 AÜG entsteht ein <strong>fingiertes Arbeitsverhältnis zum Entleiher</strong> – sofern keine Festhaltenserklärung abgegeben wird."
+  },
+  {
+    diff:"schwer", diffLabel:"⬤ Schwer", diffClass:"diff-schwer",
+    q:"Was regelt § 4 ETV iGZ/GVP zu sog. Besserstellungsvereinbarungen, und was ist die zwingende Voraussetzung?",
+    opts:["Tarifvertragsparteien und Arbeitgeber des Kundenbetriebs können eine Vergütungsregelung für Einsatzzeiten treffen – zwingend nur, wenn sie für die Leiharbeitnehmer günstiger ist.","Verleiher und Entleiher können bilateral die tariflichen Entgelte abweichend regeln, sofern die Bundesagentur zustimmt.","Der Entleiher kann mit dem Betriebsrat eine Regelung treffen, die den Tarifvertrag vollständig ersetzt.","Verleiher, Leiharbeitnehmer und Gewerkschaft können im Einzelfall höhere Vergütung als Betriebsvereinbarung vereinbaren."],
+    correct:0,
+    explanation:"<strong>Richtig!</strong> § 4 ETV: <strong>Dreiseitige Vereinbarung</strong> zwischen Tarifvertragsparteien (GVP/DGB) und Arbeitgeber des Kundenbetriebs – zwingend nur zulässig, wenn sie für die Leiharbeitnehmer <strong>günstiger</strong> als der Flächentarifvertrag ist."
+  },
+  {
+    diff:"schwer", diffLabel:"⬤ Schwer", diffClass:"diff-schwer",
+    q:"Welche Höchstüberlassungsdauer gilt seit der AÜG-Reform 2017 für denselben Leiharbeitnehmer beim selben Entleiher, und wann beginnt sie neu?",
+    opts:["18 Monate; die Frist beginnt neu nach einer Unterbrechung von mehr als 3 Monaten.","12 Monate; jede Unterbrechung – auch ein Tag – setzt die Frist zurück.","24 Monate; die Frist beginnt neu nach 6 Wochen Unterbrechung.","18 Monate; bei Tarifvertrag der Einsatzbranche verlängert sie sich automatisch auf 36 Monate."],
+    correct:0,
+    explanation:"<strong>Richtig!</strong> § 1 Abs. 1b AÜG: gesetzliche Höchstüberlassungsdauer <strong>18 Monate</strong>. Die Frist beginnt neu nach einer Unterbrechung von <strong>mehr als 3 Monaten</strong>. Kürzere Pausen werden angerechnet ('Drehtürmodell' ist nicht möglich)."
+  },
+  // ── SEHR SCHWER ────────────────────────────────────────────
+  {
+    diff:"sehr-schwer", diffLabel:"⬤ Sehr schwer", diffClass:"diff-sehr-schwer",
+    q:"Welche Übergangsregelung gilt für GVP-Mitglieder, die zum 31.12.2025 noch an die iGZ-Tarifverträge gebunden waren, bezüglich Erfahrungszuschlag vs. einsatzbezogener Zulage?",
+    opts:["Bis 30.06.2027 kann anstelle des neuen Erfahrungszuschlags (§ 3 ETV DGB/GVP) weiterhin die einsatzbezogene Zulage nach alter iGZ-Regelung (§ 5 ERTV iGZ) gezahlt werden. Ein früherer Wechsel ist zulässig.","Die alten iGZ-Entgelttabellen gelten unverändert bis 30.06.2027 fort.","GVP-Mitglieder müssen bis 30.06.2027 alle Verträge auf das neue GVP-Tarifwerk umstellen, können dies aber in Tranchen tun.","Die Übergangsregelung erlaubt BAP-Konditionen bis 30.06.2027, auch bei GVP-Mitgliedschaft."],
+    correct:0,
+    explanation:"<strong>Richtig!</strong> Ehemalige iGZ-Mitglieder können befristet bis <strong>30.06.2027</strong> anstatt des neuen Erfahrungszuschlags die bisherige <strong>einsatzbezogene Zulage</strong> nach § 5 ERTV iGZ weiter zahlen. Ein früherer Wechsel auf den Erfahrungszuschlag ist jederzeit möglich."
+  },
+  {
+    diff:"sehr-schwer", diffLabel:"⬤ Sehr schwer", diffClass:"diff-sehr-schwer",
+    q:"Wie berechnet sich die AÜG-Überlassungshöchstdauer bei Unterbrechungen des Einsatzes desselben Leiharbeitnehmers beim selben Entleiher?",
+    opts:["Unterbrechungen unter 3 Monaten werden angerechnet; erst eine Unterbrechung von mehr als 3 Monaten lässt die 18-Monate-Frist neu beginnen.","Jede Unterbrechung – auch von einem Tag – setzt die Frist vollständig zurück.","Unterbrechungen bis 6 Wochen bleiben unberücksichtigt; danach beginnt die Frist neu.","Die Unterbrechungsdauer spielt keine Rolle; nur der Wechsel des Leiharbeitnehmers setzt die Frist zurück."],
+    correct:0,
+    explanation:"<strong>Richtig!</strong> § 1 Abs. 1b S. 1 AÜG: Einsatzzeiten werden addiert. Erst eine Unterbrechung von <strong>mehr als 3 Monaten</strong> lässt die Frist neu beginnen – um ein 'Drehtürmodell' mit kurzen Pausen zur Fristerneuerung zu verhindern."
+  },
+  {
+    diff:"sehr-schwer", diffLabel:"⬤ Sehr schwer", diffClass:"diff-sehr-schwer",
+    q:"Wann liegt nach Rechtsprechung des BAG 'verdeckte' Arbeitnehmerüberlassung vor, obwohl ein Werkvertrag vereinbart wurde?",
+    opts:["Wenn der Auftraggeber (Entleiher) das arbeitsrechtliche Direktionsrecht (Arbeitszeit, -ort, -inhalt) über das Personal des Auftragnehmers ausübt – unabhängig von der vertraglichen Bezeichnung.","Nur wenn die vertragliche Bezeichnung als Werkvertrag fehlt oder unklar ist.","Nur wenn der Auftraggeber vorsätzlich handelt und die AÜG-Erlaubnis bewusst umgeht.","Wenn mehr als 50 % der Tätigkeit beim Auftraggeber stattfindet."],
+    correct:0,
+    explanation:"<strong>Richtig!</strong> Entscheidend ist das <strong>tatsächliche Weisungsverhältnis</strong>: Übt der Auftraggeber das Direktionsrecht über Arbeitszeit, -ort und -inhalt aus, liegt Arbeitnehmerüberlassung vor – egal was im Vertrag steht (§ 1 Abs. 1 S. 1 AÜG; BAG st. Rspr.)."
+  },
+  {
+    diff:"sehr-schwer", diffLabel:"⬤ Sehr schwer", diffClass:"diff-sehr-schwer",
+    q:"Welche Entgeltgruppe gilt laut ERTV iGZ/GVP für Tätigkeiten, die eine Meister- oder Technikerausbildung erfordern UND bei denen die Arbeitnehmer Personalverantwortung tragen oder selbstständig komplexe Aufgaben bewältigen müssen?",
+    opts:["Entgeltgruppe 7","Entgeltgruppe 6","Entgeltgruppe 8","Entgeltgruppe 5"],
+    correct:0,
+    explanation:"<strong>Richtig!</strong> § 3 ERTV: <strong>EG 7</strong> = Meister-, Techniker- oder Fachschulausbildung + Personalverantwortung oder selbstständige Bewältigung komplexer Aufgaben. EG 6 erfordert nur die Meister-/Technikerausbildung ohne diese Zusatzanforderungen."
+  },
+  {
+    diff:"sehr-schwer", diffLabel:"⬤ Sehr schwer", diffClass:"diff-sehr-schwer",
+    q:"Der Equal-Pay-Anspruch nach § 8 AÜG greift nach 9 Monaten. Durch welches Instrument kann in den ersten 15 Monaten davon abgewichen werden?",
+    opts:["Durch Tarifvertrag der Einsatzbranche, der Branchenzuschläge vorsieht, die schrittweise an das Equal-Pay-Niveau heranführen.","Durch Einzelarbeitsvertrag zwischen Verleiher und Leiharbeitnehmer, wenn dieser ausdrücklich zustimmt.","Durch Betriebsvereinbarung zwischen Entleiher und Betriebsrat des Einsatzbetriebs.","Equal Pay kann nicht abbedungen werden; die 9-Monate-Frist ist zwingend."],
+    correct:0,
+    explanation:"<strong>Richtig!</strong> § 8 Abs. 2–4 AÜG: Durch <strong>Tarifvertrag der Einsatzbranche</strong> mit Branchenzuschlägen kann in den ersten <strong>15 Monaten</strong> vom Equal-Pay-Grundsatz abgewichen werden. Die Branchenzuschläge steigen mit der Einsatzdauer stufenweise an."
+  },
+  {
+    diff:"sehr-schwer", diffLabel:"⬤ Sehr schwer", diffClass:"diff-sehr-schwer",
+    q:"Was regelt § 6 ERTV iGZ/GVP zur Entgeltumwandlung, und welche Formvorschrift gilt dabei?",
+    opts:["Arbeitnehmer können künftige tarifliche Entgeltansprüche zur Finanzierung betrieblicher Altersvorsorge (§ 1a BetrAVG) umwandeln; die Vereinbarung muss schriftlich abgeschlossen werden.","Entgeltumwandlung ist in der Zeitarbeit generell ausgeschlossen, da das Arbeitsverhältnis beim Verleiher liegt.","Der Entleiher muss der Entgeltumwandlung zustimmen und sie im Überlassungsvertrag vermerken.","Die Entgeltumwandlung ist nur für Entgeltgruppen 5–9 zulässig und auf 4 % der Beitragsbemessungsgrenze begrenzt."],
+    correct:0,
+    explanation:"<strong>Richtig!</strong> § 6 ERTV: Leiharbeitnehmer haben Anspruch auf Umwandlung künftiger <strong>tariflicher</strong> Entgeltansprüche zur betrieblichen Altersvorsorge nach § 1a BetrAVG. Die Vereinbarung muss <strong>schriftlich</strong> abgeschlossen werden – hier gilt noch die strengere Schriftform."
+  },
+  {
+    diff:"sehr-schwer", diffLabel:"⬤ Sehr schwer", diffClass:"diff-sehr-schwer",
+    q:"Welche Mitbestimmungsrechte hat der Betriebsrat des Entleihers beim Einsatz von Leiharbeitnehmern nach § 99 BetrVG, und auf welcher Grundlage kann er die Zustimmung verweigern?",
+    opts:["Er hat das volle Mitbestimmungsrecht nach § 99 BetrVG und kann die Zustimmung z.B. verweigern, wenn die Höchstüberlassungsdauer überschritten wird oder gesetzliche Einstellungsregeln missachtet werden.","Er hat keinerlei Rechte, da Leiharbeitnehmer keine Arbeitnehmer des Entleihers sind.","Er muss den Einsatz genehmigen, hat aber kein Widerspruchsrecht bei Überschreitung der Höchstdauer.","Er kann den Einsatz nur ablehnen, wenn mehr als 10 Leiharbeitnehmer gleichzeitig eingesetzt werden."],
+    correct:0,
+    explanation:"<strong>Richtig!</strong> Das BAG hat bestätigt: Der Betriebsrat des Entleihers besitzt das <strong>volle Mitbestimmungsrecht nach § 99 BetrVG</strong>. Zustimmungsverweigerungsgründe sind u.a. Überschreitung der Höchstüberlassungsdauer oder Missachtung anderer gesetzlicher Einstellungsvorschriften."
+  },
+  {
+    diff:"sehr-schwer", diffLabel:"⬤ Sehr schwer", diffClass:"diff-sehr-schwer",
+    q:"Welche Sonderregel gilt laut Entgelttarifvertrag iGZ/GVP für Einsatzbranchen, in denen die tariflichen Entgelte niedriger sind als die aus der GVP-Entgeltsystematik?",
+    opts:["Die einsatzbezogene Zulage kann in solchen Branchen vermindert werden.","Der Leiharbeitnehmer wird automatisch in eine niedrigere Entgeltgruppe eingestuft.","Die GVP-Entgelttabelle gilt nicht; stattdessen gelten die brancheneigenen Tarifentgelte vollständig.","In solchen Branchen ist Arbeitnehmerüberlassung ohne Entgeltrahmentarifvertrag möglich."],
+    correct:0,
+    explanation:"<strong>Richtig!</strong> § 5 Abs. 2 ERTV: In Branchen mit niedrigerem Tarifniveau kann die <strong>einsatzbezogene Zulage vermindert werden</strong>. Dies verhindert, dass die Zulage die Tarifentgelte der Einsatzbranche strukturell übersteigt."
+  }
+];
+
+// ══════════════════════════════════════════════════════════════
+//  JOKER DEFINITIONS
+// ══════════════════════════════════════════════════════════════
+const JOKERS = [
+  { icon:"🎯", title:"50/50", desc:"Zwei falsche Antworten werden ausgeblendet." },
+  { icon:"👥", title:"Hol dir Hilfe", desc:"Hol dir Hilfe von EINEM Kollegen im Raum." },
+  { icon:"⏰", title:"+30 Sekunden", desc:"Du bekommst 30 extra Sekunden Zeit." },
+  { icon:"⏭️", title:"Frage tauschen", desc:"Diese Frage wird gegen eine neue ausgetauscht. (Nur bei sehr schweren Fragen!)" }
+];
+
+// ══════════════════════════════════════════════════════════════
+//  STATE
+// ══════════════════════════════════════════════════════════════
+let allNames = [];
+let remainingNames = [];
+let usedQuestions = new Set();
+let currentName = '';
+let currentQ = null;
+let timerInterval = null;
+let timeLeft = 45;
+let totalTime = 45;
+let timerFrozen = false;
+let jokerAssigned = null;
+let jokerUsed = false;
+let jokerShown = false;
+let answered = false;
+
+const CIRCUMFERENCE = 2 * Math.PI * 30; // r=30
+
+// ══════════════════════════════════════════════════════════════
+//  SETUP
+// ══════════════════════════════════════════════════════════════
+function initSlots(count) {
+  const grid = document.getElementById('names-grid');
+  grid.innerHTML = '';
+  for (let i = 0; i < count; i++) addSlot(false);
+}
+
+function addSlot(focus = true) {
+  const grid = document.getElementById('names-grid');
+  const idx = grid.children.length + 1;
+  const div = document.createElement('div');
+  div.className = 'name-slot';
+  div.innerHTML = `<span class="slot-num">${idx}</span><input class="name-input" type="text" placeholder="Name…" maxlength="20">`;
+  grid.appendChild(div);
+  if (focus) div.querySelector('input').focus();
+}
+
+function clearNames() {
+  document.querySelectorAll('.name-input').forEach(i => i.value = '');
+  document.querySelector('.name-input').focus();
+}
+
+function getNames() {
+  return Array.from(document.querySelectorAll('.name-input'))
+    .map(i => i.value.trim()).filter(Boolean);
+}
+
+function startGame() {
+  allNames = getNames();
+  if (allNames.length < 2) { alert('Bitte mindestens 2 Namen eintragen.'); return; }
+  remainingNames = [...allNames];
+  usedQuestions.clear();
+  showScreen('lobby');
+  renderLobby();
+}
+
+// ══════════════════════════════════════════════════════════════
+//  LOBBY
+// ══════════════════════════════════════════════════════════════
+function renderLobby() {
+  const total = allNames.length;
+  const done = total - remainingNames.length;
+  document.getElementById('lobby-round-eye').textContent = `Runde ${done + 1} / ${total}`;
+  document.getElementById('lobby-title').textContent = done === 0 ? 'Bereit?' : 'Weiter geht\'s!';
+  document.getElementById('round-counter').textContent = `${remainingNames.length} von ${total} Personen ausstehend`;
+
+  const chips = document.getElementById('remaining-chips');
+  chips.innerHTML = '';
+  allNames.forEach(n => {
+    const c = document.createElement('div');
+    c.className = 'chip' + (remainingNames.includes(n) ? '' : ' done');
+    c.textContent = n;
+    chips.appendChild(c);
+  });
+
+  document.getElementById('spin-btn').disabled = false;
+}
+
+function spinPlayer() {
+  if (remainingNames.length === 0) { showScreen('done'); return; }
+  const idx = Math.floor(Math.random() * remainingNames.length);
+  currentName = remainingNames[idx];
+  remainingNames.splice(idx, 1);
+
+  pickQuestion();
+  setupQuestion();
+  showScreen('question');
+}
+
+// ══════════════════════════════════════════════════════════════
+//  QUESTION LOGIC
+// ══════════════════════════════════════════════════════════════
+function pickQuestion(excludeDiff = null) {
+  let available = POOL.filter((_, i) => !usedQuestions.has(i));
+  if (excludeDiff) available = available.filter(q => q.diff !== excludeDiff);
+  if (available.length === 0) { usedQuestions.clear(); available = [...POOL]; }
+  const choice = available[Math.floor(Math.random() * available.length)];
+  const poolIdx = POOL.indexOf(choice);
+  usedQuestions.add(poolIdx);
+  currentQ = choice;
+}
+
+function assignJoker() {
+  // Frage-tauschen-Joker nur bei sehr schwer
+  const available = currentQ.diff === 'sehr-schwer'
+    ? JOKERS
+    : JOKERS.filter(j => j.title !== 'Frage tauschen');
+  jokerAssigned = available[Math.floor(Math.random() * available.length)];
+}
+
+function setupQuestion() {
+  answered = false;
+  jokerUsed = false;
+  jokerShown = false;
+  timerFrozen = false;
+
+  // callout
+  document.getElementById('callout-avatar').textContent = currentName.charAt(0).toUpperCase();
+  document.getElementById('callout-name').textContent = `Hey ${currentName}, du bist dran!`;
+
+  // diff badge
+  const badge = document.getElementById('q-diff-badge');
+  badge.textContent = currentQ.diffLabel;
+  badge.className = 'diff-badge ' + currentQ.diffClass;
+
+  // question
+  document.getElementById('q-text').textContent = currentQ.q;
+
+  // shuffle + render options
+  const letters = ['A','B','C','D'];
+  const indices = [0,1,2,3].sort(() => Math.random() - 0.5);
+  const correctText = currentQ.opts[currentQ.correct];
+  const opts = document.getElementById('q-options');
+  opts.innerHTML = '';
+  indices.forEach((origIdx, i) => {
+    const btn = document.createElement('button');
+    btn.className = 'opt-btn';
+    btn.dataset.correct = currentQ.opts[origIdx] === correctText ? '1' : '0';
+    btn.dataset.origIdx = origIdx;
+    btn.innerHTML = `<span class="opt-letter">${letters[i]}</span><span>${currentQ.opts[origIdx]}</span>`;
+    btn.onclick = () => selectAnswer(btn);
+    opts.appendChild(btn);
+  });
+
+  // explanation
+  const expl = document.getElementById('q-explanation');
+  expl.className = 'explanation';
+  expl.innerHTML = '';
+
+  // joker
+  document.getElementById('joker-strip').className = 'joker-strip';
+  assignJoker();
+
+  // footer
+  document.getElementById('q-footer').className = 'q-footer';
+
+  // timer
+  body_noBlink();
+  startTimer(45);
+}
+
+// ══════════════════════════════════════════════════════════════
+//  TIMER
+// ══════════════════════════════════════════════════════════════
+function startTimer(seconds) {
+  clearInterval(timerInterval);
+  timeLeft = seconds;
+  totalTime = seconds;
+  renderTimer();
+  timerInterval = setInterval(tickTimer, 1000);
+}
+
+function tickTimer() {
+  if (timerFrozen || answered) return;
+  timeLeft--;
+  renderTimer();
+
+  // show joker at 15s
+  if (timeLeft === 15 && !jokerUsed && !jokerShown) {
+    jokerShown = true;
+    timerFrozen = true;
+    showJoker();
+  }
+
+  // red blink at 10s
+  if (timeLeft <= 10 && timeLeft > 0 && !jokerShown) {
+    document.body.classList.add('danger-blink');
+    document.getElementById('ring-fg').style.stroke = 'var(--danger)';
+    document.getElementById('timer-bar').style.background = 'var(--danger)';
+  }
+
+  if (timeLeft <= 0) {
+    clearInterval(timerInterval);
+    body_noBlink();
+    timeoutAnswer();
+  }
+}
+
+function renderTimer() {
+  const pct = timeLeft / totalTime;
+  const offset = CIRCUMFERENCE * (1 - pct);
+  document.getElementById('ring-fg').style.strokeDasharray = CIRCUMFERENCE;
+  document.getElementById('ring-fg').style.strokeDashoffset = offset;
+  document.getElementById('ring-num').textContent = timeLeft;
+  document.getElementById('timer-bar').style.width = (pct * 100) + '%';
+
+  // color shift
+  if (timeLeft > 15) {
+    document.getElementById('ring-fg').style.stroke = 'var(--accent2)';
+    document.getElementById('timer-bar').style.background = 'var(--accent2)';
+  } else if (timeLeft > 10) {
+    document.getElementById('ring-fg').style.stroke = 'var(--warn)';
+    document.getElementById('timer-bar').style.background = 'var(--warn)';
+  }
+}
+
+function body_noBlink() {
+  document.body.classList.remove('danger-blink');
+}
+
+function timeoutAnswer() {
+  body_noBlink();
+  answered = true;
+  document.querySelectorAll('.opt-btn').forEach(b => {
+    b.disabled = true;
+    if (b.dataset.correct === '1') b.classList.add('correct');
+  });
+  const expl = document.getElementById('q-explanation');
+  expl.innerHTML = '⏱️ Zeit abgelaufen! ' + currentQ.explanation;
+  expl.classList.add('show');
+  document.getElementById('q-footer').classList.add('show');
+}
+
+// ══════════════════════════════════════════════════════════════
+//  ANSWER
+// ══════════════════════════════════════════════════════════════
+function selectAnswer(btn) {
+  if (answered) return;
+  answered = true;
+  clearInterval(timerInterval);
+  body_noBlink();
+  timerFrozen = false;
+
+  document.querySelectorAll('.opt-btn').forEach(b => {
+    b.disabled = true;
+    if (b.dataset.correct === '1') b.classList.add('correct');
+  });
+  if (btn.dataset.correct !== '1') btn.classList.add('wrong');
+
+  const expl = document.getElementById('q-explanation');
+  expl.innerHTML = currentQ.explanation;
+  expl.classList.add('show');
+  document.getElementById('q-footer').classList.add('show');
+
+  // hide joker strip if still shown
+  document.getElementById('joker-strip').className = 'joker-strip';
+}
+
+// ══════════════════════════════════════════════════════════════
+//  JOKER
+// ══════════════════════════════════════════════════════════════
+function showJoker() {
+  const j = jokerAssigned;
+  document.getElementById('joker-icon').textContent = j.icon;
+  document.getElementById('joker-title').textContent = j.title;
+  document.getElementById('joker-desc').textContent = j.desc;
+
+  // disable use-btn if swap-joker on non-very-hard (shouldn't happen due to filter, but safety)
+  document.getElementById('joker-use-btn').disabled = false;
+
+  document.getElementById('joker-strip').classList.add('show');
+}
+
+function useJoker() {
+  jokerUsed = true;
+  document.getElementById('joker-strip').className = 'joker-strip'; // hide strip
+  const j = jokerAssigned;
+
+  if (j.title === '50/50') {
+    // hide 2 wrong options
+    const wrongs = Array.from(document.querySelectorAll('.opt-btn'))
+      .filter(b => b.dataset.correct === '0');
+    const toHide = wrongs.sort(() => Math.random() - 0.5).slice(0, 2);
+    toHide.forEach(b => b.classList.add('hidden-opt'));
+  }
+
+  if (j.title === 'Hol dir Hilfe') {
+    // just resume – the description says it all
+  }
+
+  if (j.title === '+30 Sekunden') {
+    timeLeft += 30;
+    totalTime += 30;
+    renderTimer();
+  }
+
+  if (j.title === 'Frage tauschen') {
+    clearInterval(timerInterval);
+    body_noBlink();
+    const oldDiff = currentQ.diff;
+    pickQuestion(null); // pick any unused question
+    setupQuestion();
+    return; // setupQuestion restarts everything
+  }
+
+  // resume timer
+  timerFrozen = false;
+
+  // if now ≤ 10s start blink
+  if (timeLeft <= 10) {
+    document.body.classList.add('danger-blink');
+    document.getElementById('ring-fg').style.stroke = 'var(--danger)';
+    document.getElementById('timer-bar').style.background = 'var(--danger)';
+  }
+}
+
+function skipJoker() {
+  jokerUsed = true;
+  document.getElementById('joker-strip').className = 'joker-strip';
+  timerFrozen = false;
+  // trigger red blink since we're at ≤15s
+  document.body.classList.add('danger-blink');
+  document.getElementById('ring-fg').style.stroke = 'var(--danger)';
+  document.getElementById('timer-bar').style.background = 'var(--danger)';
+}
+
+// ══════════════════════════════════════════════════════════════
+//  NAVIGATION
+// ══════════════════════════════════════════════════════════════
+function goLobby() {
+  clearInterval(timerInterval);
+  body_noBlink();
+  if (remainingNames.length === 0) { showScreen('done'); return; }
+  showScreen('lobby');
+  renderLobby();
+}
+
+function showScreen(id) {
+  document.querySelectorAll('.screen').forEach(s => s.classList.remove('active'));
+  document.getElementById(id).classList.add('active');
+  window.scrollTo(0, 0);
+}
+
+function resetAll() {
+  clearInterval(timerInterval);
+  body_noBlink();
+  remainingNames = [...allNames];
+  usedQuestions.clear();
+  showScreen('lobby');
+  renderLobby();
+}
+
+// ══════════════════════════════════════════════════════════════
+//  INIT
+// ══════════════════════════════════════════════════════════════
+(function init() {
+  initSlots(6); // start with 6 slots
+})();
+</script>
+</body>
+</html>
